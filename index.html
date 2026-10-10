@@ -360,6 +360,8 @@ body.full #widget{display:none}
 .reply-form textarea{min-height:56px}
 @media(max-width:480px){.reply-form{flex-direction:column;align-items:stretch}}
 .d-actions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+.btn-danger{background:#fff;color:#b00020;border-color:#e3a3ad}
+.btn-danger:hover{background:#b00020;color:#fff;border-color:#b00020}
 @media(max-width:480px){.d-actions .btn{flex:1}}
 .empty{text-align:center;color:var(--muted);padding:40px 10px}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--maroon-ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:.92rem;z-index:200;max-width:calc(100vw - 32px);text-align:center;animation:pop .25s ease both}
@@ -1137,25 +1139,38 @@ R.dashboard = () => {
       : ([...db.threads].sort(so).map(t => { const m = t.msgs[t.msgs.length - 1]; const st = !t.open ? 'Resolved' : awaiting(t) ? 'Awaiting reply' : m ? 'Replied' : 'New'; return `<button class="item${sel(t)}${closed(t) ? ' done' : ''}" data-k="c" data-id="${esc(t.id)}"><div class="top"><b>💬 ${esc(t.alias)}</b>${sevBadge(t.sev)}</div><small>${m ? esc(m.t) : 'No messages yet'}</small>${peakNote(t)}<div class="top" style="margin:8px 0 0"><span class="badge ${t.open ? 'stat' : 'ok'}">${st} · ${t.msgs.length} messages</span><small>${esc(fmt(lastAt(t)))}</small></div></button>`; }).join('') || '<div class="empty">No anonymous chats yet.</div>');
   }
   const back = '<button type="button" class="linkbtn d-back">← Back to list</button>';
+  const EMPTY = '<div class="empty">Select a request to review it.</div>';
+  // Permanently remove an appointment request or anonymous chat (e.g. test entries).
+  function remove(kind, id){
+    const list = kind === 'a' ? db.appts : db.threads, x = list.find(y => y.id === id); if (!x) return;
+    const label = kind === 'a' ? `the appointment request from "${x.name || 'Anonymous'}"` : `the anonymous chat "${x.alias}" and all its messages`;
+    if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
+    list.splice(list.indexOf(x), 1); save();
+    S.sel = null; S.sig = ''; S.built = null; $('#d-detail').innerHTML = EMPTY;
+    toast(kind === 'a' ? 'Appointment request deleted' : 'Chat deleted'); live();
+  }
   function detail(force){
     if (!S.sel) return;
     const el = $('#d-detail');
     if (S.sel.k === 'a') {
-      const a = db.appts.find(x => x.id === S.sel.id); if (!a) return;
+      const a = db.appts.find(x => x.id === S.sel.id); if (!a) { S.sel = null; el.innerHTML = EMPTY; return; }
       const sig = JSON.stringify(a); if (!force && sig === S.sig) return; S.sig = sig; S.built = null;
       el.innerHTML = `${back}<div class="d-head"><h2>${esc(a.name || 'Anonymous')}</h2>${sevBadge(a.sev)}</div>${peakNote(a)}<p class="muted" style="margin:4px 0 0">Sent ${esc(new Date(a.t).toLocaleString())}</p>
         <dl><dt>Grade and section</dt><dd>${esc(a.grade)}</dd><dt>Concern</dt><dd>${esc(a.concern)}</dd><dt>Available</dt><dd>${esc(a.date)}, ${esc(a.slot)}</dd><dt>Contact</dt><dd>${esc(a.contact || 'none')}</dd><dt>What is happening</dt><dd>${esc(a.details)}</dd></dl>
-        <div class="field" style="max-width:260px;margin:0"><label class="f" for="d-status">Status</label><select id="d-status">${['New','Scheduled','Done'].map(s => `<option${s === a.status ? ' selected' : ''}>${s}</option>`).join('')}</select></div>`;
+        <div class="field" style="max-width:260px;margin:0"><label class="f" for="d-status">Status</label><select id="d-status">${['New','Scheduled','Done'].map(s => `<option${s === a.status ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
+        <div class="d-actions"><button class="btn btn-danger btn-sm" id="d-del" type="button">Delete request</button></div>`;
       $('#d-status').onchange = e => { const x = db.appts.find(y => y.id === a.id); if (!x) return; x.status = e.target.value; save(); toast('Status updated to ' + x.status); live(); };
+      $('#d-del').onclick = () => remove('a', a.id);
     } else {
-      const t = db.threads.find(x => x.id === S.sel.id); if (!t) return;
+      const t = db.threads.find(x => x.id === S.sel.id); if (!t) { S.sel = null; S.built = null; el.innerHTML = EMPTY; return; }
       if (force || S.built !== t.id) {
         S.built = t.id; S.sig = '';
         el.innerHTML = `${back}<div class="d-head"><h2 id="d-title"></h2><span id="d-badge"></span></div><div id="d-peak"></div><p class="muted" style="margin:4px 0 12px" id="d-sub"></p>
           <div class="msgs" id="d-msgs"></div>
           <div class="ok-note" id="d-done" hidden></div>
           <form class="reply-form" id="d-form"><label class="sr" for="d-reply">Reply</label><textarea id="d-reply" rows="2" placeholder="Reply as counselor…"></textarea><button class="btn btn-primary" type="submit">Send reply</button></form>
-          <div class="d-actions"><button class="btn btn-outline btn-sm" id="d-sev"></button><button class="btn btn-outline btn-sm" id="d-close"></button></div>`;
+          <div class="d-actions"><button class="btn btn-outline btn-sm" id="d-sev"></button><button class="btn btn-outline btn-sm" id="d-close"></button><button class="btn btn-danger btn-sm" id="d-del" type="button">Delete chat</button></div>`;
+        $('#d-del').onclick = () => remove('c', t.id);
         const r = $('#d-reply');
         $('#d-form').addEventListener('submit', e => { e.preventDefault(); post(t.id, 'admin', r.value); r.value = ''; });
         r.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer:fine)').matches) { e.preventDefault(); $('#d-form').requestSubmit(); } });
