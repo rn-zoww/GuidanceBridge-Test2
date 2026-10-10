@@ -66,8 +66,12 @@ button{font-family:inherit}
 .menu-btn{display:none;margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:14px;width:44px;height:44px;cursor:pointer;color:var(--maroon);flex:none}
 @media(max-width:1120px){
   .menu-btn{display:grid;place-items:center}
-  .nav-links{position:absolute;left:0;right:0;top:var(--nav-h);background:#fff;flex-direction:column;align-items:stretch;gap:2px;padding:10px 16px 18px;border-bottom:1px solid var(--line);display:none;margin:0;box-shadow:var(--shadow-sm);max-height:calc(100dvh - var(--nav-h) - env(safe-area-inset-top,0px));overflow-y:auto}
-  .nav-links.open{display:flex}
+  .nav-links{position:absolute;left:0;right:0;top:var(--nav-h);background:#fff;flex-direction:column;align-items:stretch;gap:2px;padding:10px 16px 18px;border-bottom:1px solid var(--line);margin:0;box-shadow:var(--shadow-sm);max-height:calc(100dvh - var(--nav-h) - env(safe-area-inset-top,0px));overflow-y:auto;
+    opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-12px);transform-origin:top;transition:opacity .25s ease,transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s linear .35s}
+  .nav-links.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .25s ease,transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  .nav-links>*{opacity:0;transform:translateY(-8px);transition:opacity .25s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
+  .nav-links.open>*{opacity:1;transform:none}
+  .nav-links.open>*:nth-child(1){transition-delay:.05s}.nav-links.open>*:nth-child(2){transition-delay:.09s}.nav-links.open>*:nth-child(3){transition-delay:.13s}.nav-links.open>*:nth-child(4){transition-delay:.17s}.nav-links.open>*:nth-child(5){transition-delay:.21s}.nav-links.open>*:nth-child(6){transition-delay:.25s}
   .nav-links a:not(.btn){padding:13px 8px;font-size:1rem;border-radius:12px}
   .nav-links a.on{box-shadow:inset 3px 0 0 var(--gold);background:var(--maroon-tint)}
   .nav-links .btn{margin-top:10px}
@@ -330,8 +334,12 @@ body.full #widget,body.staff #widget{display:none}
 .stat.hi{background:var(--maroon);border-color:var(--maroon)}
 .stat.hi b,.stat.hi span{color:#fff}
 .tabs{display:flex;gap:6px;background:var(--maroon-tint);border-radius:999px;padding:5px;width:fit-content;max-width:100%;overflow-x:auto;margin-bottom:22px}
-.tab{border:0;background:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;color:var(--maroon);cursor:pointer;white-space:nowrap}
-.tab.on{background:var(--maroon);color:#fff}
+.tabs{position:relative}
+.tab{position:relative;z-index:1;border:0;background:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;color:var(--maroon);cursor:pointer;white-space:nowrap;transition:color .3s ease}
+.tab.on{color:#fff}
+/* sliding pill behind the active tab */
+.tab-ind{position:absolute;top:5px;bottom:5px;left:0;width:0;border-radius:999px;background:var(--maroon);box-shadow:0 6px 16px -8px rgba(128,0,0,.7);transition:transform .4s cubic-bezier(.2,.8,.2,1),width .4s cubic-bezier(.2,.8,.2,1)}
+.tab-ind.no-anim{transition:none}
 .dash-grid{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:24px;align-items:start}
 .dash-grid>*{min-width:0}
 @media(max-width:900px){.dash-grid{grid-template-columns:1fr}}
@@ -524,6 +532,42 @@ body.full #progress{display:none}
 .br-label small{font-size:.8rem;opacity:.85}
 @media(max-width:800px){.breathe-grid{grid-template-columns:1fr;gap:28px;text-align:center}.breathe-grid .btn{width:100%;max-width:320px}}
 
+/* hamburger morphs into an X when the menu opens */
+.hb{position:relative;display:block;width:20px;height:14px}
+.hb i{position:absolute;left:0;right:0;height:2px;border-radius:2px;background:currentColor;transition:top .3s cubic-bezier(.2,.8,.2,1),transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.hb i:nth-child(1){top:0}.hb i:nth-child(2){top:6px}.hb i:nth-child(3){top:12px}
+.menu-btn[aria-expanded="true"] .hb i:nth-child(1){top:6px;transform:rotate(45deg)}
+.menu-btn[aria-expanded="true"] .hb i:nth-child(2){opacity:0;transform:scaleX(.2)}
+.menu-btn[aria-expanded="true"] .hb i:nth-child(3){top:6px;transform:rotate(-45deg)}
+.menu-btn{transition:background .2s,border-color .2s}
+.menu-btn[aria-expanded="true"]{background:var(--maroon-tint);border-color:var(--maroon)}
+
+/* smoother scrolling for in-page jumps (wheel smoothing is done in JS) */
+html{scroll-behavior:smooth}
+
+/* dashboard: list re-enters on tab change, detail pane fades in on selection, stats pop on first load */
+@keyframes swapIn{from{opacity:0;transform:translateY(14px) scale(.985)}}
+.swap-in>*{animation:swapIn .45s cubic-bezier(.2,.7,.2,1) backwards}
+.pane-in{animation:pageIn .35s ease backwards}
+.stats.first .stat{animation:swapIn .55s cubic-bezier(.2,.7,.2,1) backwards}
+.stats.first .stat:nth-child(2){animation-delay:.06s}.stats.first .stat:nth-child(3){animation-delay:.12s}.stats.first .stat:nth-child(4){animation-delay:.18s}
+.item{transition:border-color .15s,box-shadow .2s,transform .2s}
+@media(hover:hover){.item:hover{transform:translateX(3px)}}
+
+/* tactile press feedback */
+.btn:active,.chip:active,.send:active,.tab:active,.vid-item:active,.item:active{transform:scale(.97)}
+.send{transition:transform .15s,background .15s}
+
+/* AI reply typing effect */
+.bubble.streaming .txt::after{content:"";display:inline-block;width:2px;height:1.05em;margin-left:2px;vertical-align:-2px;background:var(--maroon);animation:caret .8s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.later{opacity:0;transform:translateY(8px);animation:none!important;transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.2,1)}
+.later.show{opacity:1;transform:none}
+.status.busy{background:#fff4c2;color:#725200}
+.status.busy::before{animation-duration:.9s}
+.avatar.busy{animation:avatarPulse 1.2s ease-in-out infinite}
+@keyframes avatarPulse{0%,100%{box-shadow:0 0 0 0 rgba(128,0,0,.35)}50%{box-shadow:0 0 0 7px rgba(128,0,0,0)}}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.reveal{opacity:1}.hm-hero h1 em{background-size:100% 100%}}
 </style>
 </head>
@@ -586,7 +630,7 @@ const ICON = {
   shield: svg('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>', 20),
   send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   check: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#800000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-width="1.6"/><path d="M8 12.5l3 3 5-6"/></svg>',
-  menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 22),
+  menu: '<span class="hb" aria-hidden="true"><i></i><i></i><i></i></span>',
   min: svg('<path d="M6 12h12"/>', 18),
   bot: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" stroke-width="2.6"/>', 22),
   pin: svg('<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
@@ -780,27 +824,47 @@ function mountChat(root, id, full){
       <div class="chat-foot">AI coping support only. Not therapy, and not a replacement for a counselor.</div>
     </div>`;
   const body = $('.chat-body', root), form = $('form', root), ta = $('textarea', root), sendBtn = $('.send', root), endBtn = $('.end', root);
+  const statusEl = $('.status', root), avatarEl = $('.avatar', root);
   let seen = msgs.length;
+  // Types a new assistant reply out character by character, then swaps in the formatted text
+  // and fades in anything that was held back until the reply finished (handoff card, crisis bar, captions).
+  function typeOut(el, full, html){
+    const total = full.length, dur = Math.min(2800, 16 * total + 250), t0 = performance.now();
+    const finish = () => { el.innerHTML = html; el.closest('.bubble').classList.remove('streaming'); $$('.later', body).forEach(x => x.classList.add('show')); body.scrollTop = body.scrollHeight; };
+    const tick = now => {
+      if (!el.isConnected) return;                     // a newer redraw replaced this bubble
+      const n = Math.min(total, Math.ceil(total * (now - t0) / dur));
+      el.textContent = full.slice(0, n);
+      body.scrollTop = body.scrollHeight;
+      if (n < total) requestAnimationFrame(tick); else finish();
+    };
+    requestAnimationFrame(tick);
+  }
   function draw(){
     const fresh = msgs.length > seen; seen = msgs.length;
     const talked = msgs.some(m => m.r === 'u');
+    const lastMsg = msgs[msgs.length - 1];
+    const stream = fresh && !busy && !reduced && lastMsg && lastMsg.r === 'b';
+    const later = stream ? ' later' : '';
     let h = msgs.map((m, i) => {
-      const cls = fresh && i === msgs.length - 1 ? ' new' : '';
+      const isLast = i === msgs.length - 1, cls = fresh && isLast ? ' new' : '';
       if (m.r === 'u') return `<div class="bubble me${cls}">${esc(m.t)}</div>`;
-      if (m.signoff) return `<div class="ended-rule">Chat closed</div><div class="bubble them signoff${cls}"><span class="who-cap">GuidanceBridge Assistant</span>${esc(m.t)}</div>`;
-      return `<div class="bubble them${cls}">${m.intro ? '<span class="who-cap">GuidanceBridge Assistant</span>' : ''}${md(m.t)}${m.fb ? `<span class="cap">Showing built-in tips. The AI service could not be reached (${esc(m.fb)}).</span>` : ''}</div>`;
+      const who = (m.intro || m.signoff) ? '<span class="who-cap">GuidanceBridge Assistant</span>' : '';
+      const cap = m.fb ? `<span class="cap${isLast ? later : ''}">Showing built-in tips. The AI service could not be reached (${esc(m.fb)}).</span>` : '';
+      const txt = stream && isLast ? '' : (m.signoff ? esc(m.t) : md(m.t));
+      return `${m.signoff ? '<div class="ended-rule">Chat closed</div>' : ''}<div class="bubble them${m.signoff ? ' signoff' : ''}${cls}${stream && isLast ? ' streaming' : ''}">${who}<span class="txt">${txt}</span>${cap}</div>`;
     }).join('');
-    if (msgs.length === 1 && !busy && !ended) h += `<div class="chips">${STARTERS.map(x => `<button type="button" class="chip" data-s="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
-    if (busy) h += '<div class="bubble them typing" aria-label="Assistant is typing"><i></i><i></i><i></i></div>';
+    if (msgs.length === 1 && !busy && !ended) h += `<div class="chips${later}">${STARTERS.map(x => `<button type="button" class="chip" data-s="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+    if (busy) h += '<div class="bubble them typing new" aria-label="Assistant is typing"><i></i><i></i><i></i></div>';
     if (ended && !busy) {
-      h += `<div class="handoff"><b style="color:var(--maroon)">Need more support?</b><p>You can start a new chat with the assistant, or talk with a real counselor.</p>
+      h += `<div class="handoff${later}"><b style="color:var(--maroon)">Need more support?</b><p>You can start a new chat with the assistant, or talk with a real counselor.</p>
         <div class="btns"><button type="button" class="btn btn-primary btn-sm" data-act="new">Start a new chat</button>
         <button type="button" class="btn btn-outline btn-sm" data-act="appt">Book a face-to-face appointment</button>
         <button type="button" class="btn btn-outline btn-sm" data-act="anon">Chat anonymously with a counselor</button></div></div>`;
     } else if (sev && talked && !busy) {
       const hi = sev === 'HIGH';
-      if (hi) h += '<div class="crisis-bar"><b>If you\'re in immediate danger:</b> go to a trusted adult nearby and call <a href="tel:911">911</a>, or the NCMH Crisis Hotline at <a href="tel:1553">1553</a>.</div>';
-      h += `<div class="handoff">${sevBadge(sev)}<p>${hi ? 'A human counselor should see this first. Choose how you want to connect:' : 'Want to talk with a real counselor? Choose what feels easiest:'}</p>
+      if (hi) h += `<div class="crisis-bar${later}"><b>If you're in immediate danger:</b> go to a trusted adult nearby and call <a href="tel:911">911</a>, or the NCMH Crisis Hotline at <a href="tel:1553">1553</a>.</div>`;
+      h += `<div class="handoff${later}">${sevBadge(sev)}<p>${hi ? 'A human counselor should see this first. Choose how you want to connect:' : 'Want to talk with a real counselor? Choose what feels easiest:'}</p>
         <div class="btns"><button type="button" class="btn btn-primary btn-sm" data-act="appt">Book a face-to-face appointment</button>
         <button type="button" class="btn btn-outline btn-sm" data-act="anon">Chat anonymously with a counselor</button></div></div>`;
     }
@@ -809,7 +873,10 @@ function mountChat(root, id, full){
     ta.disabled = ended;
     ta.placeholder = ended ? 'This chat is closed. Start a new chat to continue.' : 'Type here. No names needed.';
     endBtn.disabled = busy || ended;
+    statusEl.textContent = busy ? 'Typing…' : 'Here to listen';
+    statusEl.classList.toggle('busy', busy); avatarEl.classList.toggle('busy', busy);
     body.scrollTop = body.scrollHeight;
+    if (stream) typeOut($('.bubble.streaming .txt', body), lastMsg.t, lastMsg.signoff ? esc(lastMsg.t) : md(lastMsg.t));
   }
   root.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -1111,7 +1178,7 @@ R.appointment = () => {
       <div class="hm-rowbtn" style="justify-content:center;margin-top:20px"><a class="btn btn-primary" href="#/portal">Open anonymous chat</a><a class="btn btn-outline" href="#/">Back home</a></div>
       ${f.sev === 'HIGH' ? '<p class="fine" style="margin-top:20px">If you feel unsafe right now, tell a trusted adult nearby and call 911.</p>' : ''}
     </div></div>${footer()}`;
-    window.scrollTo(0, 0);
+    jumpTop();
   });
 };
 
@@ -1162,7 +1229,7 @@ R.dashboard = () => {
     <h1 style="font-size:clamp(1.9rem,4vw,3rem);margin:0">Triage dashboard</h1>
     <p class="muted" style="margin:6px 0 0">Signed in as ${esc(u.name)}. High-priority cases are listed first.</p>
     <div class="stats" id="stats"></div>
-    <div class="tabs" role="tablist"><button class="tab${S.tab === 'a' ? ' on' : ''}" data-tab="a" role="tab">Appointments</button><button class="tab${S.tab === 'c' ? ' on' : ''}" data-tab="c" role="tab">Anonymous chats</button></div>
+    <div class="tabs" role="tablist"><span class="tab-ind no-anim" aria-hidden="true"></span><button class="tab${S.tab === 'a' ? ' on' : ''}" data-tab="a" role="tab">Appointments</button><button class="tab${S.tab === 'c' ? ' on' : ''}" data-tab="c" role="tab">Anonymous chats</button></div>
     <div class="dash-grid"><div id="d-list"></div><div class="detail" id="d-detail"><div class="empty">Select a request to review it.</div></div></div>
   </div>${footer()}`;
   const lastAt = t => { const m = t.msgs[t.msgs.length - 1]; return m ? m.at : t.t; };
@@ -1225,14 +1292,27 @@ R.dashboard = () => {
     }
   }
   live = () => { stats(); list(); detail(false); };
-  $$('.tab').forEach(b => b.onclick = () => { $$('.tab').forEach(x => x.classList.toggle('on', x === b)); S.tab = b.dataset.tab; list(); });
+  // Tab pill slides to the active tab; the list re-enters with a short stagger.
+  const ind = $('.tab-ind');
+  const moveInd = () => { const on = $('.tab.on'); if (!on) return; ind.style.width = on.offsetWidth + 'px'; ind.style.transform = `translateX(${on.offsetLeft}px)`; };
+  const replay = (el, cls, ms) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove(cls), ms); };
+  const swapList = () => { [...$('#d-list').children].forEach((c, i) => c.style.animationDelay = Math.min(i, 8) * 45 + 'ms'); replay($('#d-list'), 'swap-in', 900); };
+  $$('.tab').forEach(b => b.onclick = () => {
+    if (S.tab === b.dataset.tab) return;
+    $$('.tab').forEach(x => x.classList.toggle('on', x === b)); S.tab = b.dataset.tab; moveInd(); list(); swapList();
+  });
+  addEventListener('resize', moveInd);
+  const prevCleanup = cleanup; cleanup = () => { removeEventListener('resize', moveInd); prevCleanup && prevCleanup(); };
   $('#d-list').addEventListener('click', e => {
     const b = e.target.closest('.item'); if (!b) return;
-    S.sel = {k:b.dataset.k, id:b.dataset.id}; list(); detail(true);
+    S.sel = {k:b.dataset.k, id:b.dataset.id}; list(); detail(true); replay($('#d-detail'), 'pane-in', 400);
     if (matchMedia('(max-width:900px)').matches) $('#d-detail').scrollIntoView({behavior:'smooth', block:'start'});
   });
   $('#d-detail').addEventListener('click', e => { if (e.target.closest('.d-back')) $('#d-list').scrollIntoView({behavior:'smooth', block:'start'}); });
   live();
+  // first paint: place the tab pill without sliding, then enable the slide and play the entrance
+  moveInd(); requestAnimationFrame(() => ind.classList.remove('no-anim'));
+  replay($('#stats'), 'first', 1000); swapList();
 };
 
 /* ---------- shared counselor helpers ---------- */
@@ -1448,7 +1528,7 @@ function route(){
   app.classList.remove('page-in'); void app.offsetWidth; app.classList.add('page-in');
   animateIn(); onScroll();
   const sc = SS.get('gb_scroll'); SS.del('gb_scroll');
-  if (sc && $('#' + sc)) setTimeout(() => $('#' + sc).scrollIntoView({behavior:'smooth'}), 50); else window.scrollTo(0, 0);
+  if (sc && $('#' + sc)) setTimeout(() => $('#' + sc).scrollIntoView({behavior:'smooth'}), 50); else jumpTop();
 }
 // Size the full-page chat to the area the user can actually see. Mobile 100vh includes space behind the
 // browser toolbars, and iOS does not shrink the layout when the keyboard opens; visualViewport accounts for both.
@@ -1481,6 +1561,43 @@ function animateIn(){
   });
   $$('[data-count]', app).forEach(el => io ? io.observe(el) : countUp(el));
 }
+/* Smooth wheel scrolling (desktop mouse wheels only). Eases the page toward the wheel target instead of
+   jumping in steps. Inner scroll areas (chat windows, menus, the video row) keep native scrolling. */
+const smooth = (() => {
+  let target = 0, cur = 0, raf = 0;
+  const off = reduced || !matchMedia('(pointer:fine)').matches;
+  const maxY = () => document.documentElement.scrollHeight - innerHeight;
+  const innerScroller = el => {
+    for (; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+      const oy = getComputedStyle(el).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) return true;
+    }
+    return false;
+  };
+  const step = () => {
+    cur += (target - cur) * 0.14;
+    if (Math.abs(target - cur) < 0.6) cur = target;
+    window.scrollTo({top:cur, behavior:'instant'});
+    raf = cur === target ? 0 : requestAnimationFrame(step);
+  };
+  const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+  if (!off) addEventListener('wheel', e => {
+    const b = document.body.classList;
+    if (e.ctrlKey || e.deltaX && Math.abs(e.deltaX) > Math.abs(e.deltaY) || b.contains('full') || b.contains('wopen') || innerScroller(e.target)) return;
+    e.preventDefault();
+    if (!raf) target = cur = scrollY;               // resync after keyboard/scrollbar/anchor scrolling
+    const dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * innerHeight : e.deltaY;
+    target = Math.max(0, Math.min(maxY(), target + dy));
+    if (!raf) raf = requestAnimationFrame(step);
+  }, {passive:false});
+  return {stop};
+})();
+const jumpTop = () => { smooth.stop(); window.scrollTo({top:0, left:0, behavior:'instant'}); };
+// Close the mobile menu when tapping anywhere outside it.
+document.addEventListener('click', e => {
+  const n = $('#nav-links'); if (!n || !n.classList.contains('open') || e.target.closest('#nav-links, #menu-btn')) return;
+  n.classList.remove('open'); $('#menu-btn').setAttribute('aria-expanded', 'false');
+});
 const progress = document.createElement('div'); progress.id = 'progress'; progress.setAttribute('aria-hidden', 'true'); document.body.prepend(progress);
 function onScroll(){ const h = document.documentElement.scrollHeight - innerHeight; progress.style.transform = `scaleX(${h > 0 ? Math.min(1, scrollY / h) : 0})`; }
 addEventListener('scroll', onScroll, {passive:true});
